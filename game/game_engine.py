@@ -29,28 +29,28 @@ class GameEngine:
             self.player.move(10, self.height)
 
     def update(self):
-    # Move the ball first
-    self.ball.move()
+        # Move the ball first
+        self.ball.move()
 
-    # ✅ Immediately check for paddle collisions
-    if self.ball.rect().colliderect(self.player.rect()):
-        self.ball.x = self.player.x + self.player.width  # reposition to avoid overlap
-        self.ball.velocity_x *= -1
+        # ✅ Immediately check for paddle collisions
+        if self.ball.rect().colliderect(self.player.rect()):
+            self.ball.x = self.player.x + self.player.width  # reposition to avoid overlap
+            self.ball.velocity_x *= -1
 
-    elif self.ball.rect().colliderect(self.ai.rect()):
-        self.ball.x = self.ai.x - self.ball.width  # reposition to avoid overlap
-        self.ball.velocity_x *= -1
+        elif self.ball.rect().colliderect(self.ai.rect()):
+            self.ball.x = self.ai.x - self.ball.width  # reposition to avoid overlap
+            self.ball.velocity_x *= -1
 
-    # Then handle wall bounce and scoring
-    if self.ball.x <= 0:
-        self.ai_score += 1
-        self.ball.reset()
-    elif self.ball.x >= self.width:
-        self.player_score += 1
-        self.ball.reset()
+        # Then handle wall bounce and scoring
+        if self.ball.x <= 0:
+            self.ai_score += 1
+            self.ball.reset()
+        elif self.ball.x >= self.width:
+            self.player_score += 1
+            self.ball.reset()
 
-    # Finally, move AI
-    self.ai.auto_track(self.ball, self.height)
+        # Finally, move AI
+        self.ai.auto_track(self.ball, self.height)
 
 
 
