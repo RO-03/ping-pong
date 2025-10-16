@@ -1,11 +1,18 @@
 import pygame
 from .paddle import Paddle
 from .ball import Ball
-import time  
+import time
+import os
 
-# Game Engine
+# Initialize pygame mixer
+pygame.mixer.init()
 
+# Game Engine constants
 WHITE = (255, 255, 255)
+
+# --- Sound files are now expected to be in a 'sounds' directory ---
+SOUND_DIR = os.path.join(os.path.dirname(__file__), "..", "sounds")
+
 
 class GameEngine:
     def __init__(self, width, height):
@@ -23,6 +30,21 @@ class GameEngine:
         self.font = pygame.font.SysFont("Arial", 30)
         self.target_score = 5  # default winning score
 
+        # 🎵 Load sound effects locally
+        # If any file is missing, a warning is printed and the game runs without sound.
+        try:
+            self.sound_paddle = pygame.mixer.Sound(os.path.join(SOUND_DIR, "paddle_hit.wav"))
+            self.sound_wall = pygame.mixer.Sound(os.path.join(SOUND_DIR, "wall_bounce.wav"))
+            self.sound_score = pygame.mixer.Sound(os.path.join(SOUND_DIR, "score.wav"))
+        except pygame.error:
+            print("------------------------------------------------------------")
+            print("⚠️ Warning: Sound files not found in the 'sounds' directory.")
+            print("   Playing game without sounds.")
+            print("------------------------------------------------------------")
+            self.sound_paddle = None
+            self.sound_wall = None
+            self.sound_score = None
+
     def handle_input(self):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
@@ -31,25 +53,43 @@ class GameEngine:
             self.player.move(10, self.height)
 
     def update(self):
+        # Save current velocities to detect bounce later
+        prev_vx, prev_vy = self.ball.velocity_x, self.ball.velocity_y
+
         # Move the ball first
         self.ball.move()
 
-        # ✅ Immediately check for paddle collisions
+        # Immediately check for paddle collisions
         if self.ball.rect().colliderect(self.player.rect()):
             self.ball.x = self.player.x + self.player.width  # reposition to avoid overlap
             self.ball.velocity_x *= -1
-
         elif self.ball.rect().colliderect(self.ai.rect()):
             self.ball.x = self.ai.x - self.ball.width  # reposition to avoid overlap
             self.ball.velocity_x *= -1
 
-        # Then handle wall bounce and scoring
+        # Wall bounce
+        if self.ball.y <= 0 or self.ball.y + self.ball.height >= self.height:
+            self.ball.velocity_y *= -1
+
+        # Scoring
         if self.ball.x <= 0:
             self.ai_score += 1
+            if self.sound_score:
+                self.sound_score.play()
             self.ball.reset()
         elif self.ball.x >= self.width:
             self.player_score += 1
+            if self.sound_score:
+                self.sound_score.play()
             self.ball.reset()
+
+        # Play sounds based on what changed
+        if self.ball.velocity_x != prev_vx:
+            if self.sound_paddle:
+                self.sound_paddle.play()
+        elif self.ball.velocity_y != prev_vy:
+            if self.sound_wall:
+                self.sound_wall.play()
 
         # Finally, move AI
         self.ai.auto_track(self.ball, self.height)
@@ -85,7 +125,7 @@ class GameEngine:
             # Pause so players can see the result
             time.sleep(2)
 
-            # ✅ Show replay options instead of quitting immediately
+            # Show replay options instead of quitting immediately
             self.show_replay_menu(screen)
 
     def show_replay_menu(self, screen):
@@ -128,7 +168,7 @@ class GameEngine:
 
             pygame.time.delay(100)
 
-        # ✅ Reset game state for replay
+        # Reset game state for replay
         self.player_score = 0
         self.ai_score = 0
         self.ball.reset()
